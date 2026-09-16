@@ -15,7 +15,7 @@
 
 ## 系统架构
 
-![架构图](images/structure.png)
+![架构图](images/demo_structure.png)
 
 系统核心流程：
 
