@@ -5,9 +5,12 @@
 
 ## 效果展示
 
-![界面截图](docs/images/demo_interface.png)
+![界面截图](images/demo_interface.png)
 
-![生成结果](docs/images/demo_result.png)
+![生成结果1](images/demo_result_1.png)
+![生成结果2](images/demo_result_2.png)
+![生成结果3](images/demo_result_3.png)
+![生成结果4](images/demo_result_4.png)
 
 
 ## 系统架构
