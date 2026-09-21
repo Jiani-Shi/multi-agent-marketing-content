@@ -4,9 +4,11 @@ import json
 import re
 from typing import Dict, Any, Optional, List
 
+from jsonschema import validate, ValidationError
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from .router import get_agent
+from .config import OUTPUT_SCHEMA
 
 
 class ContentGenerator:
@@ -110,39 +112,47 @@ class ContentGenerator:
 
         return results
 
-    def _parse_response(self, response_text: str) -> Dict[str, str]:
-        """解析 LLM 返回的 JSON，带多重兜底策略"""
+    def _validate_with_schema(self, data: dict) -> dict:
+        """用 JSON Schema 验证解析结果，不通过则抛出 ValidationError"""
+        validate(instance=data, schema=OUTPUT_SCHEMA)
+        return data
 
-        # 策略一：直接解析
+    def _parse_response(self, response_text: str) -> Dict[str, str]:
+        """解析 LLM 返回的 JSON，四层兜底 + Schema 验证"""
+
+        # 策略一：直接解析 + Schema 验证
         try:
-            return json.loads(response_text.strip())
-        except json.JSONDecodeError:
+            data = json.loads(response_text.strip())
+            return self._validate_with_schema(data)
+        except (json.JSONDecodeError, ValidationError):
             pass
 
-        # 策略二：提取最外层花括号内容
+        # 策略二：提取最外层花括号内容 + Schema 验证
         try:
             start = response_text.find("{")
             end = response_text.rfind("}") + 1
             if start != -1 and end != 0:
                 json_str = response_text[start:end]
-                return json.loads(json_str)
-        except json.JSONDecodeError:
+                data = json.loads(json_str)
+                return self._validate_with_schema(data)
+        except (json.JSONDecodeError, ValidationError):
             pass
 
-        # 策略三：正则匹配 title 和 content 字段
+        # 策略三：正则匹配 title 和 content 字段 + Schema 验证
         try:
             title_match = re.search(r'"title"\s*:\s*"([^"]*)"', response_text)
             content_match = re.search(r'"content"\s*:\s*"([^"]*)"', response_text, re.DOTALL)
 
             if title_match or content_match:
-                return {
+                data = {
                     "title": title_match.group(1) if title_match else "生成失败",
                     "content": content_match.group(1) if content_match else response_text[:500]
                 }
-        except Exception:
+                return self._validate_with_schema(data)
+        except (Exception, ValidationError):
             pass
 
-        # 策略四：全部失败，返回原文
+        # 策略四：全部失败，返回原文（不做 Schema 验证，保证前端有内容展示）
         return {
             "title": "解析失败",
             "content": response_text[:500] + ("..." if len(response_text) > 500 else "")

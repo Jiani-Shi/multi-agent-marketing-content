@@ -18,3 +18,20 @@ TOP_K_RETRIEVAL = 5
 SIMILARITY_THRESHOLD = 0.5
 
 PLATFORMS = ["douyin", "xiaohongshu", "ecommerce", "wechat"]
+
+# JSON Schema 输出约束
+OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "minLength": 1
+        },
+        "content": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "required": ["title", "content"],
+    "additionalProperties": False
+}
